@@ -69,7 +69,8 @@ public:
     *  @brief Constructeur par défaut. Construit une LinkedList vide
     *
     */
-   LinkedList() : nbElements(0), head(nullptr) { }
+   LinkedList() : nbElements(0), head(nullptr) {
+   }
 
 public:
 
@@ -108,7 +109,7 @@ public:
     *  @brief destructeur
     */
    ~LinkedList() {
-      
+      // pop_front jusqu'a nbElements = 0 ...
    }
 
 public:
@@ -147,13 +148,13 @@ public:
     *  @exception std::runtime_error si la liste est vide
     */
    reference front() { // O(1)
-      if(nbElements){
-         return head->data; // head.data pas content : (*head).data ?
+      if (nbElements) {
+         return head->data;
       }
    }
 
    const_reference front() const { // O(1)
-      if(nbElements){
+      if (nbElements) {
          return head->data;
       }
    }
@@ -165,9 +166,10 @@ public:
     *
     *  @exception std::runtime_error si la liste est vide
     */
-   void pop_front() { // O(1) - Pourquoi passer par tmp.. ?
-      if(nbElements){
-         Node* tmp = new Node{ head->data, head->next };
+   void pop_front() { // O(1)
+      // Pourquoi passer par tmp vu que pas utilisé.. (p.24) ?
+      if (nbElements) {
+         Node* tmp = new Node{head->data, head->next};
          head = head->next;
          delete tmp;
          --nbElements;
@@ -188,20 +190,18 @@ public:
     */
    void insert(const_reference value, size_t pos) {
       // dépiler jusqu'à la position et stocker les valeurs, ajouter la
-      // nouvelle valeur et rempiler les valeurs stockées
-      if(pos < nbElements){   
+      // nouvelle valeur et rempiler les valeurs stockées - ne fonctionne pas
+      if (pos >= 0 && pos < nbElements) {
          size_t taille = pos + 1;
          value_type copie[taille];
-         for(size_t i = 0; i < taille; ++i){
+         for (size_t i = 0; i < taille; ++i) {
             copie[i] = head->data;
-            cout << "i : " << i << " - data : " << head->data << endl;
             this->pop_front();
          }
          this->push_front(value);
-         for(size_t i = taille-1; i >= 0;--i){
+         for (size_t i = taille - 1; i >= 0; --i) {
             this->push_front(copie[i]);
          }
-         
       }
    }
 
@@ -216,22 +216,21 @@ public:
     *
     *  @return une reference a l'element correspondant dans la liste
     */
-   reference at(size_t pos) {
-      value_type retour;
-      if(pos < nbElements){   
+   reference at(size_t pos) { // ne fonctionne pas
+      value_type* retour;
+      if (pos >= 0 && pos < nbElements) {
          size_t taille = pos + 1;
          value_type copie[taille];
-         for(size_t i = 0; i < taille; ++i){
+         for (size_t i = 0; i < taille; ++i) {
             copie[i] = head->data;
-            cout << "i : " << i << " - data : " << head->data << endl;
             this->pop_front();
          }
-         retour = head->data;
-         for(size_t i = taille-1; i >= 0;--i){
+         retour = &(head->data);
+         for (size_t i = taille - 1; i >= 0; --i) {
             this->push_front(copie[i]);
          }
       }
-      return retour;
+      return *retour;
    }
 
    /**
@@ -313,7 +312,7 @@ int main() {
    cout << "\nSuppression de l'element en tete\n";
    liste.pop_front();
    cout << "\n" << liste;
-   
+
    /*cout << "\nModification de l'élément en position " << N / 2 << " à 24 \n";
    liste.at(N / 2) = 24;
    cout << "\n" << liste;*/
