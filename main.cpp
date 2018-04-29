@@ -6,7 +6,7 @@
 
 #include <iostream>
 #include <stdexcept>
-#include <vector>
+
 using namespace std;
 
 /// Forward declaration classe
@@ -79,8 +79,11 @@ public:
     *
     *  @param other la LinkedList à copier
     */
-   LinkedList(LinkedList& other) /* ... */ {
-      /* ... */
+   LinkedList(LinkedList& other) {
+      if (head != other.head) {
+         head = other.head;
+         nbElements = other.nbElements;
+      }
    }
 
 public:
@@ -99,7 +102,11 @@ public:
     *  effacé.
     */
    LinkedList& operator=(const LinkedList& other) {
-      /* ... */
+      if (head->data != other->head->data && head->next != other->head->next) {
+         other->head->data = head->data;
+         other->head->next = head->next;
+         other->nbElements = nbElements;
+      }
       return *this;
    }
 
@@ -109,7 +116,9 @@ public:
     *  @brief destructeur
     */
    ~LinkedList() {
-      // pop_front jusqu'a nbElements = 0 ...
+      while (nbElements) {
+         pop_front();
+      }
    }
 
 public:
@@ -148,15 +157,17 @@ public:
     *  @exception std::runtime_error si la liste est vide
     */
    reference front() { // O(1)
-      if (nbElements) {
-         return head->data;
+      if (!nbElements) {
+         throw runtime_error("La liste est vide.");
       }
+      return head->data;
    }
 
    const_reference front() const { // O(1)
-      if (nbElements) {
-         return head->data;
+      if (!nbElements) {
+         throw runtime_error("La liste est vide.");
       }
+      return head->data;
    }
 
 public:
@@ -167,13 +178,13 @@ public:
     *  @exception std::runtime_error si la liste est vide
     */
    void pop_front() { // O(1)
-      // Pourquoi passer par tmp vu que pas utilisé.. (p.24) ?
-      if (nbElements) {
-         Node* tmp = new Node{head->data, head->next};
-         head = head->next;
-         delete tmp;
-         --nbElements;
+      if (!nbElements) {
+         throw runtime_error("La liste est vide.");
       }
+      Node* tmp = new Node{head->data, head->next};
+      head = head->next;
+      delete tmp;
+      --nbElements;
    }
 
 public:
@@ -189,20 +200,24 @@ public:
     *  @exception std::bad_alloc si pas assez de mémoire, où toute autre exception lancée par la constructeur de copie de value_type
     */
    void insert(const_reference value, size_t pos) {
-      // dépiler jusqu'à la position et stocker les valeurs, ajouter la
-      // nouvelle valeur et rempiler les valeurs stockées - ne fonctionne pas
-      if (pos >= 0 && pos < nbElements) {
-         size_t taille = pos + 1;
-         value_type copie[taille];
-         for (size_t i = 0; i < taille; ++i) {
-            copie[i] = head->data;
-            this->pop_front();
+      bool insert = false;
+      if (pos > nbElements) {
+         throw out_of_range("LinkedList::insert");
+      } else if (pos == 0) {
+         push_front(value);
+         insert = true;
+      } else {
+         Node* currElement = head;
+
+         for (size_t i = 0; i < pos - 1; ++i) {
+            currElement = currElement->next;
          }
-         this->push_front(value);
-         for (size_t i = taille - 1; i >= 0; --i) {
-            this->push_front(copie[i]);
-         }
+
+         Node* newElement = new Node{value, currElement->next};
+         currElement->next = newElement;
+         insert = true;
       }
+      if (insert) nbElements++;
    }
 
 public:
@@ -216,21 +231,16 @@ public:
     *
     *  @return une reference a l'element correspondant dans la liste
     */
-   reference at(size_t pos) { // ne fonctionne pas
-      value_type* retour;
-      if (pos >= 0 && pos < nbElements) {
-         size_t taille = pos + 1;
-         value_type copie[taille];
-         for (size_t i = 0; i < taille; ++i) {
-            copie[i] = head->data;
-            this->pop_front();
-         }
-         retour = &(head->data);
-         for (size_t i = taille - 1; i >= 0; --i) {
-            this->push_front(copie[i]);
-         }
+   reference at(size_t pos) {
+      if (pos > nbElements - 1) {
+         throw out_of_range("LinkedList::at");
       }
-      return *retour;
+      Node* currElement = head;
+       
+      for (size_t i = 0; i < pos; ++i) {
+            currElement = currElement->next;
+         }
+      return currElement->data;
    }
 
    /**
@@ -243,7 +253,13 @@ public:
     *  @return une const_reference a l'element correspondant dans la liste
     */
    const_reference at(size_t pos) const {
-      /* ... */
+      const Node* currElement = head;
+      if (pos < nbElements) {
+         for (size_t i = 0; i < pos; ++i) {
+            currElement = currElement->next;
+         }
+      }
+      return currElement->data;
    }
 
 public:
@@ -256,7 +272,29 @@ public:
     *  @exception std::out_of_range("LinkedList::erase") si pos non valide
     */
    void erase(size_t pos) {
-      /* ... */
+      bool erase = false;
+      if (pos == 0) {
+         pop_front();
+         erase = true;
+      } else if (pos < nbElements) {
+         Node* currElement = head;
+
+         for (size_t i = 0; i < pos - 1; ++i) {
+            currElement = currElement->next;
+         }
+
+         Node* nextElement = currElement->next;
+         Node* newElement = new Node{currElement->data, currElement->next};
+         if (pos != nbElements) {
+            currElement->next = nextElement->next;
+         } else {
+            currElement->next = nullptr;
+         }
+         delete newElement;
+         erase = true;
+      }
+
+      if (erase) nbElements--;
    }
 
 public:
@@ -288,6 +326,7 @@ ostream& operator<<(ostream& os, const LinkedList<T>& liste) {
    os << liste.size() << ": ";
    auto n = liste.head;
    while (n) {
+
       os << n->data << " ";
       n = n->next;
    }
@@ -313,27 +352,27 @@ int main() {
    liste.pop_front();
    cout << "\n" << liste;
 
-   /*cout << "\nModification de l'élément en position " << N / 2 << " à 24 \n";
+   cout << "\nModification de l'element en position " << N / 2 << " a 24 \n";
    liste.at(N / 2) = 24;
-   cout << "\n" << liste;*/
+   cout << "\n" << liste;
 
-   /*cout << "\nSuppression de l'élément en position " << 2 * N / 3 << "\n";
+   cout << "\nSuppression de l'element en position " << 2 * N / 3 << "\n";
    liste.erase(2 * N / 3);
    cout << "\n" << liste;
 
-   cout << "\nInsertion de l'élément 421 en position 0\n";
+   cout << "\nInsertion de l'element 421 en position 0\n";
    liste.insert(421, 0);
    cout << "\n" << liste;
 
-   cout << "\nInsertion de l'élément 422 en position " << N / 3 << "\n";
+   cout << "\nInsertion de l'element 422 en position " << N / 3 << "\n";
    liste.insert(422, N / 3);
    cout << "\n" << liste;
 
-   cout << "\nInsertion de l'élément 423 en dernière position\n";
+   cout << "\nInsertion de l'element 423 en derniere position\n";
    liste.insert(423, liste.size());
    cout << "\n" << liste;
 
-   cout << "\nDestruction de la liste \n"; */
+   /*cout << "\nDestruction de la liste \n"; */
 
 
    return EXIT_SUCCESS;
