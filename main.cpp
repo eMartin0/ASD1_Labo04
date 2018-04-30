@@ -102,10 +102,10 @@ public:
     *  effacé.
     */
    LinkedList& operator=(const LinkedList& other) {
-      if (head->data != other->head->data && head->next != other->head->next) {
-         other->head->data = head->data;
-         other->head->next = head->next;
-         other->nbElements = nbElements;
+      if (head->data != other.head->data && head->next != other.head->next) {
+         head->data = other.head->data;
+         head->next = other.head->next;
+         nbElements = other.nbElements;
       }
       return *this;
    }
@@ -144,7 +144,7 @@ public:
     */
    void push_front(const_reference value) { // O(1)
       head = new Node{value, head};
-      nbElements++;
+      ++nbElements;
    }
 
 public:
@@ -181,7 +181,7 @@ public:
       if (!nbElements) {
          throw runtime_error("La liste est vide.");
       }
-      Node* tmp = new Node{head->data, head->next};
+      Node* tmp = head;
       head = head->next;
       delete tmp;
       --nbElements;
@@ -200,12 +200,10 @@ public:
     *  @exception std::bad_alloc si pas assez de mémoire, où toute autre exception lancée par la constructeur de copie de value_type
     */
    void insert(const_reference value, size_t pos) {
-      bool insert = false;
       if (pos > nbElements) {
          throw out_of_range("LinkedList::insert");
       } else if (pos == 0) {
          push_front(value);
-         insert = true;
       } else {
          Node* currElement = head;
 
@@ -215,9 +213,8 @@ public:
 
          Node* newElement = new Node{value, currElement->next};
          currElement->next = newElement;
-         insert = true;
+         ++nbElements;
       }
-      if (insert) nbElements++;
    }
 
 public:
@@ -236,10 +233,10 @@ public:
          throw out_of_range("LinkedList::at");
       }
       Node* currElement = head;
-       
+
       for (size_t i = 0; i < pos; ++i) {
-            currElement = currElement->next;
-         }
+         currElement = currElement->next;
+      }
       return currElement->data;
    }
 
@@ -253,11 +250,13 @@ public:
     *  @return une const_reference a l'element correspondant dans la liste
     */
    const_reference at(size_t pos) const {
+      if (pos > nbElements - 1) {
+         throw out_of_range("LinkedList::at");
+      }
       const Node* currElement = head;
-      if (pos < nbElements) {
-         for (size_t i = 0; i < pos; ++i) {
-            currElement = currElement->next;
-         }
+
+      for (size_t i = 0; i < pos; ++i) {
+         currElement = currElement->next;
       }
       return currElement->data;
    }
@@ -272,11 +271,11 @@ public:
     *  @exception std::out_of_range("LinkedList::erase") si pos non valide
     */
    void erase(size_t pos) {
-      bool erase = false;
-      if (pos == 0) {
+      if (pos > nbElements - 1) {
+         throw out_of_range("LinkedList::erase");
+      } else if (pos == 0) {
          pop_front();
-         erase = true;
-      } else if (pos < nbElements) {
+      } else {
          Node* currElement = head;
 
          for (size_t i = 0; i < pos - 1; ++i) {
@@ -284,17 +283,10 @@ public:
          }
 
          Node* nextElement = currElement->next;
-         Node* newElement = new Node{currElement->data, currElement->next};
-         if (pos != nbElements) {
-            currElement->next = nextElement->next;
-         } else {
-            currElement->next = nullptr;
-         }
-         delete newElement;
-         erase = true;
+         currElement->next = nextElement->next;
+         delete nextElement;
+         --nbElements;
       }
-
-      if (erase) nbElements--;
    }
 
 public:
@@ -309,16 +301,47 @@ public:
        n'est pas trouvée
     */
    size_t find(const_reference value) const noexcept {
-      /* ... */
+      size_t pos = 1;
+      Node* currElement = head;
+      while (currElement->data != value) {
+         pos++;
+         currElement = currElement->next;
+      }
+      return pos ? pos : -1;
    }
 
    /**
     *  @brief Tri des elements de la liste par tri fusion
     */
+   void mergeSort(reference List, size_t first, size_t last);
+   void merge(reference list, size_t first, size_t middle, size_t last);
+
    void sort() {
-      /* ... */
+      mergeSort(head, 1, nbElements);
    }
 
+   void mergeSort(reference list, size_t first, size_t last) {
+      if (last <= first) {
+         return;
+      }
+      /*Node* half = head;
+      Node full = head;
+      while(full && full->next){
+         half = half->next;
+         full = full->next->next;
+      }
+      delete full;*/
+      size_t middle = first + (last - first) / 2;
+
+      mergeSort(list, first, middle);
+      mergeSort(list, middle + 1, last);
+
+      merge(list, first, middle, last);
+   }
+
+   void merge(reference list, size_t first, size_t middle, size_t last) {
+      
+   }
 };
 
 template <typename T>
@@ -348,10 +371,6 @@ int main() {
    liste.front() = 42;
    cout << "\n" << liste;
 
-   cout << "\nSuppression de l'element en tete\n";
-   liste.pop_front();
-   cout << "\n" << liste;
-
    cout << "\nModification de l'element en position " << N / 2 << " a 24 \n";
    liste.at(N / 2) = 24;
    cout << "\n" << liste;
@@ -372,8 +391,11 @@ int main() {
    liste.insert(423, liste.size());
    cout << "\n" << liste;
 
-   /*cout << "\nDestruction de la liste \n"; */
+   cout << "\nCherche valeur 64 et retourne la position : ";
+   cout << liste.find(423);
+   cout << "\n" << liste << "\n";
 
+   cout << "\nDestruction de la liste \n";
 
    return EXIT_SUCCESS;
 }
